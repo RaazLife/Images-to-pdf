@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+  <title>Online Images to PDF Generator</title>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.debug.js"></script>
+
+  <style>
+
+    body {
+
+      font-family: Arial, sans-serif;
+
+      background-color: #f7f7f7;
+
+      margin: 0;
+
+      padding: 0;
+
+    }
+
+    .container {
+
+      max-width: 600px;
+
+      margin: 0 auto;
+
+      padding: 20px;
+
+      background-color: #fff;
+
+      border-radius: 5px;
+
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    }
+
+    h1 {
+
+      text-align: center;
+
+      color: #333;
+
+    }
+
+    p {
+
+      text-align: center;
+
+      color: #777;
+
+    }
+
+    input[type="file"] {
+
+      display: none;
+
+    }
+
+    .upload-btn {
+
+      display: inline-block;
+
+      padding: 10px 20px;
+
+      background-color: #007bff;
+
+      color: #fff;
+
+      text-decoration: none;
+
+      border-radius: 5px;
+
+      cursor: pointer;
+
+      transition: background-color 0.3s;
+
+    }
+
+    .upload-btn:hover {
+
+      background-color: #0056b3;
+
+    }
+
+    .thumbnail-list {
+
+      list-style: none;
+
+      padding: 0;
+
+      margin: 20px 0;
+
+      display: flex;
+
+      flex-wrap: wrap;
+
+      justify-content: center;
+
+    }
+
+    .thumbnail {
+
+      position: relative;
+
+      display: inline-block;
+
+      margin: 10px;
+
+      width: 200px;
+
+      height: 150px;
+
+      overflow: hidden;
+
+      border-radius: 5px;
+
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+      cursor: pointer;
+
+      transition: transform 0.3s;
+
+    }
+
+    .thumbnail img {
+
+      width: 100%;
+
+      height: 100%;
+
+      object-fit: cover;
+
+    }
+
+    .thumbnail.selected:after {
+
+      content: '\2713';
+
+      position: absolute;
+
+      top: 10px;
+
+      right: 10px;
+
+      color: #fff;
+
+      font-size: 24px;
+
+      background-color: rgba(0, 123, 255, 0.8);
+
+      padding: 4px 8px;
+
+      border-radius: 50%;
+
+    }
+
+    .thumbnail:hover {
+
+      transform: scale(1.05);
+
+    }
+
+    .generate-btn {
+
+      display: block;
+
+      margin: 20px auto;
+
+      padding: 10px 20px;
+
+      background-color: #28a745;
+
+      color: #fff;
+
+      text-decoration: none;
+
+      border-radius: 5px;
+
+      text-align: center;
+
+      cursor: pointer;
+
+      transition: background-color 0.3s;
+
+    }
+
+    .generate-btn:hover {
+
+      background-color: #218838;
+
+    }
+
+    @media (max-width: 600px) {
+
+      .container {
+
+        padding: 10px;
+
+      }
+
+      .thumbnail-list {
+
+        justify-content: flex-start;
+
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Online Images to PDF Generator</h1>
+
+    <p>Select images or upload your own images and click "Generate PDF" to convert them into a PDF document.</p>
+
+  
+
+    <label for="imageUpload" class="upload-btn">Upload Images</label>
+
+    <input type="file" id="imageUpload" multiple accept="image/*">
+
+    
+
+    <ul id="imageList" class="thumbnail-list"></ul>
+
+  
+
+    <a id="generateBtn" class="generate-btn">Generate PDF</a>
+
+  </div>
+
+  
+
+  <script>
+
+    $(document).ready(function() {
+
+      var selectedImages = [];
+
+      
+
+      // Handle image uploads
+
+      $("#imageUpload").on("change", function(e) {
+
+        var files = e.target.files;
+
+        
+
+        for (var i = 0; i < files.length; i++) {
+
+          var reader = new FileReader();
+
+          reader.onload = function(event) {
+
+            var imageUrl = event.target.result;
+
+            var thumbnail = $("<li class='thumbnail'><img src='" + imageUrl + "'></li>");
+
+            
+
+            thumbnail.on("click", function() {
+
+              $(this).toggleClass("selected");
+
+            });
+
+            
+
+            $("#imageList").append(thumbnail);
+
+          };
+
+          reader.readAsDataURL(files[i]);
+
+        }
+
+      });
+
+      
+
+      // Generate PDF when the button is clicked
+
+      $("#generateBtn").on("click", function() {
+
+        selectedImages = [];
+
+        $(".thumbnail.selected img").each(function() {
+
+          selectedImages.push($(this).attr("src"));
+
+        });
+
+        
+
+        if (selectedImages.length === 0) {
+
+          alert("Please select at least one image.");
+
+          return;
+
+        }
+
+        
+
+        generatePDF();
+
+      });
+
+      
+
+      // Function to generate PDF from selected images
+
+      function generatePDF() {
+
+        var doc = new jsPDF();
+
+        var imgCount = selectedImages.length;
+
+        var processedCount = 0;
+
+        
+
+        function addImageToPDF(imageUrl) {
+
+          var img = new Image();
+
+          
+
+          img.onload = function() {
+
+            var canvas = document.createElement("canvas");
+
+            canvas.width = this.width;
+
+            canvas.height = this.height;
+
+            var ctx = canvas.getContext("2d");
+
+            ctx.drawImage(this, 0, 0);
+
+            
+
+            var imageData = canvas.toDataURL("image/jpeg");
+
+            
+
+            doc.addImage(imageData, "JPEG", 10, 10, 190, 140); // Adjust the positioning and size as per your requirement
+
+            
+
+            processedCount++;
+
+            
+
+            if (processedCount === imgCount) {
+
+              doc.save("images.pdf");
+
+            } else {
+
+              doc.addPage();
+
+              addImageToPDF(selectedImages[processedCount]);
+
+            }
+
+          };
+
+          
+
+          img.src = imageUrl;
+
+        }
+
+        
+
+        addImageToPDF(selectedImages[0]);
+
+      }
+
+    });
+
+  </script>
+
+</body>
+
+</html>
